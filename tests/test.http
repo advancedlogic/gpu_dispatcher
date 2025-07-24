@@ -1,0 +1,12 @@
+###HELP
+GET http://localhost:8000/
+
+###STATS
+GET http://localhost:8000/gpu/stats
+
+###SUMMARY
+GET http://localhost:8000/gpu/summary
+
+
+###DOC
+GET http://localhost:8000/docs

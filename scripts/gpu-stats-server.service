@@ -1,0 +1,31 @@
+[Unit]
+Description=GPU Statistics Server
+Documentation=https://github.com/your-repo/gpu-stats-server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=udg
+Group=udg
+WorkingDirectory=/home/udg/projects/tt/gpu_stats
+Environment=PATH=/home/udg/projects/tt/gpu_stats/.venv/bin
+ExecStart=/home/udg/projects/tt/gpu_stats/start-service.sh
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+# Security settings
+NoNewPrivileges=true
+
+# Environment file
+EnvironmentFile=-/home/udg/projects/tt/gpu_stats/.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
