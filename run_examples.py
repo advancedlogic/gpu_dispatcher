@@ -33,6 +33,7 @@ def main():
     examples = [
         "multi_endpoint_demo.py",
         "basic_client_usage.py",
+        "real_endpoint_usage.py",  # Real endpoint example (requires GPU server running)
         # Note: multi_endpoint_usage.py might have issues with mocking
     ]
     
