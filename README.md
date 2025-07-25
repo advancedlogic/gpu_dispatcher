@@ -19,6 +19,7 @@ A comprehensive Python library for intelligent GPU resource allocation and manag
 
 ### GPU Statistics Server
 - **Real-time GPU Monitoring**: Live GPU statistics using nvidia-smi
+- **GPU Filtering**: Support for CUDA_VISIBLE_DEVICES environment variable to filter visible GPUs
 - **REST API**: FastAPI-based server with comprehensive endpoints
 - **Interactive Documentation**: Built-in Swagger UI and ReDoc documentation
 - **Configurable Caching**: Adjustable refresh intervals to optimize performance
@@ -78,9 +79,36 @@ export PORT=8000
 export LOG_LEVEL=info
 export REFRESH_INTERVAL=1.0
 
+# GPU filtering (optional)
+export CUDA_VISIBLE_DEVICES="0,1,2"  # Show only GPUs 0, 1, and 2
+
 # Start the server
 python -m gpu_worker_pool.gpu_server
 ```
+
+#### GPU Filtering
+
+The server supports GPU filtering using the `CUDA_VISIBLE_DEVICES` environment variable, allowing you to control which GPUs are visible to the monitoring system:
+
+```bash
+# Show only specific GPUs
+export CUDA_VISIBLE_DEVICES="0,2"
+python -m gpu_worker_pool.gpu_server
+
+# Hide all GPUs (useful for testing)
+export CUDA_VISIBLE_DEVICES=""
+python -m gpu_worker_pool.gpu_server
+
+# Docker example with GPU filtering
+docker run -e CUDA_VISIBLE_DEVICES="0,1" your-gpu-server-image
+```
+
+**Supported formats:**
+- Comma-separated: `"0,1,2"`
+- Space-separated: `"0 1 2"`
+- Mixed: `"0,1 2"`
+- Single GPU: `"1"`
+- No GPUs: `""` (empty string)
 
 #### API Endpoints
 

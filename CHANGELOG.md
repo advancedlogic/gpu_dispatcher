@@ -5,6 +5,30 @@ All notable changes to the GPU Worker Pool project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-07-25
+
+### Added
+- **GPU Filtering Support**: Added CUDA_VISIBLE_DEVICES environment variable support for filtering visible GPUs
+  - Support for multiple formats: comma-separated (`"0,1,2"`), space-separated (`"0 1 2"`), mixed (`"0,1 2"`), single GPU (`"1"`), and empty string (`""`)
+  - Automatic parsing and validation of GPU indices with fallback to all GPUs if invalid indices are specified
+  - GPU filtering applies to all API endpoints (`/gpu/stats`, `/gpu/count`, `/gpu/summary`) while maintaining original GPU IDs
+  - Enhanced `/config` endpoint with `gpu_filtering` section showing current filtering status
+  - Comprehensive logging for filtering configuration and invalid GPU indices
+  - Graceful handling of edge cases including empty strings and invalid formats
+
+### Enhanced
+- **Documentation**: Updated comprehensive documentation for CUDA_VISIBLE_DEVICES filtering
+  - Added GPU filtering section to SERVER.md with usage examples and troubleshooting
+  - Enhanced API.md with detailed configuration endpoint documentation
+  - Updated README.md with GPU filtering examples and configuration
+  - Added troubleshooting section with 9 specific GPU filtering scenarios and debugging commands
+  - Included filtered vs unfiltered response examples for better understanding
+
+### Fixed
+- **GPU Statistics Server**: Improved robustness of GPU data collection with filtering support
+  - Better error handling for invalid GPU indices in CUDA_VISIBLE_DEVICES
+  - Enhanced logging for GPU filtering configuration and status
+
 ## [1.0.0] - 2024-07-24
 
 ### Added

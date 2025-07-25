@@ -4,11 +4,145 @@ This document provides detailed API documentation for the GPU Worker Pool system
 
 ## Table of Contents
 
+- [GPU Statistics Server API](#gpu-statistics-server-api)
 - [Client Interface](#client-interface)
 - [Data Models](#data-models)
 - [Configuration](#configuration)
 - [Exceptions](#exceptions)
 - [Utilities](#utilities)
+
+## GPU Statistics Server API
+
+The GPU Statistics Server provides REST API endpoints for monitoring GPU statistics and configuration.
+
+### Configuration Endpoint
+
+#### GET `/config`
+
+Returns the current server configuration settings, including GPU filtering information when CUDA_VISIBLE_DEVICES filtering is active.
+
+**Response Format:**
+
+```json
+{
+  "server": {
+    "host": "string",
+    "port": "integer",
+    "reload": "boolean",
+    "log_level": "string",
+    "access_log": "boolean",
+    "workers": "integer"
+  },
+  "api": {
+    "title": "string",
+    "version": "string",
+    "docs_url": "string",
+    "redoc_url": "string",
+    "enable_cors": "boolean",
+    "api_prefix": "string"
+  },
+  "monitoring": {
+    "refresh_interval": "float",
+    "max_history": "integer"
+  },
+  "gpu_filtering": {
+    "cuda_visible_devices": "string|null",
+    "visible_gpu_ids": "array[integer]|null",
+    "filtering_active": "boolean",
+    "total_system_gpus": "integer",
+    "visible_gpu_count": "integer"
+  }
+}
+```
+
+**GPU Filtering Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `cuda_visible_devices` | `string\|null` | The raw CUDA_VISIBLE_DEVICES environment variable value, or null if not set |
+| `visible_gpu_ids` | `array[integer]\|null` | Array of GPU IDs that are visible after parsing, or null if all GPUs are visible |
+| `filtering_active` | `boolean` | Whether GPU filtering is currently active |
+| `total_system_gpus` | `integer` | Total number of GPUs detected on the system |
+| `visible_gpu_count` | `integer` | Number of GPUs visible after filtering |
+
+**Example Response (No Filtering):**
+```json
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "reload": true,
+    "log_level": "info",
+    "access_log": true,
+    "workers": 1
+  },
+  "api": {
+    "title": "GPU Statistics Server",
+    "version": "1.0.0",
+    "docs_url": "/docs",
+    "redoc_url": "/redoc",
+    "enable_cors": true,
+    "api_prefix": ""
+  },
+  "monitoring": {
+    "refresh_interval": 1.0,
+    "max_history": 100
+  },
+  "gpu_filtering": {
+    "cuda_visible_devices": null,
+    "visible_gpu_ids": null,
+    "filtering_active": false,
+    "total_system_gpus": 4,
+    "visible_gpu_count": 4
+  }
+}
+```
+
+**Example Response (With Filtering):**
+```json
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "reload": true,
+    "log_level": "info",
+    "access_log": true,
+    "workers": 1
+  },
+  "api": {
+    "title": "GPU Statistics Server",
+    "version": "1.0.0",
+    "docs_url": "/docs",
+    "redoc_url": "/redoc",
+    "enable_cors": true,
+    "api_prefix": ""
+  },
+  "monitoring": {
+    "refresh_interval": 1.0,
+    "max_history": 100
+  },
+  "gpu_filtering": {
+    "cuda_visible_devices": "0,2",
+    "visible_gpu_ids": [0, 2],
+    "filtering_active": true,
+    "total_system_gpus": 4,
+    "visible_gpu_count": 2
+  }
+}
+```
+
+**Usage Examples:**
+
+```bash
+# Check current filtering configuration
+curl http://localhost:8000/config | jq '.gpu_filtering'
+
+# Check if filtering is active
+curl http://localhost:8000/config | jq '.gpu_filtering.filtering_active'
+
+# Get visible GPU count
+curl http://localhost:8000/config | jq '.gpu_filtering.visible_gpu_count'
+```
 
 ## Client Interface
 

@@ -303,6 +303,98 @@ curl http://localhost:8000/health
 
 The server can be configured using environment variables. The server automatically loads configuration from a `.env` file if present in the working directory.
 
+### GPU Filtering with CUDA_VISIBLE_DEVICES
+
+The server supports filtering GPU statistics based on the `CUDA_VISIBLE_DEVICES` environment variable, which is the standard NVIDIA CUDA mechanism for controlling GPU visibility. This feature is particularly useful in containerized environments, multi-tenant systems, or when you want to restrict GPU access to a specific subset of devices.
+
+#### Supported Formats
+
+The server supports multiple formats for specifying visible GPUs:
+
+- **Comma-separated**: `CUDA_VISIBLE_DEVICES="0,1,2"`
+- **Space-separated**: `CUDA_VISIBLE_DEVICES="0 1 2"`
+- **Mixed separators**: `CUDA_VISIBLE_DEVICES="0,1 2"`
+- **Single GPU**: `CUDA_VISIBLE_DEVICES="1"`
+- **No GPUs**: `CUDA_VISIBLE_DEVICES=""` (empty string)
+- **All GPUs**: `CUDA_VISIBLE_DEVICES` not set or `None`
+
+#### Examples
+
+**Show only GPUs 0 and 2:**
+```bash
+export CUDA_VISIBLE_DEVICES="0,2"
+python -m gpu_worker_pool.gpu_server
+```
+
+**Show only GPU 1:**
+```bash
+export CUDA_VISIBLE_DEVICES="1"
+python -m gpu_worker_pool.gpu_server
+```
+
+**Hide all GPUs (useful for testing):**
+```bash
+export CUDA_VISIBLE_DEVICES=""
+python -m gpu_worker_pool.gpu_server
+```
+
+**Docker container example:**
+```bash
+docker run -e CUDA_VISIBLE_DEVICES="0,1" your-gpu-server-image
+```
+
+#### Behavior
+
+When GPU filtering is active:
+- All API endpoints (`/gpu/stats`, `/gpu/count`, `/gpu/summary`) return only filtered GPUs
+- GPU IDs in responses maintain their original system GPU indices
+- Memory and utilization calculations are based only on visible GPUs
+- The `/config` endpoint shows current filtering configuration
+- Invalid GPU indices are logged as warnings and skipped
+- If all specified GPUs are invalid, the server falls back to showing all GPUs
+
+#### Filtered vs Unfiltered Response Examples
+
+**System with 4 GPUs, CUDA_VISIBLE_DEVICES="0,2"**
+
+Unfiltered response (CUDA_VISIBLE_DEVICES not set):
+```json
+{
+  "gpu_count": 4,
+  "gpus": [
+    {"gpu_id": 0, "name": "NVIDIA RTX 3080", "memory": {"usage_percent": 25.0}, "utilization_percent": 30},
+    {"gpu_id": 1, "name": "NVIDIA RTX 3080", "memory": {"usage_percent": 50.0}, "utilization_percent": 60},
+    {"gpu_id": 2, "name": "NVIDIA RTX 3080", "memory": {"usage_percent": 10.0}, "utilization_percent": 15},
+    {"gpu_id": 3, "name": "NVIDIA RTX 3080", "memory": {"usage_percent": 80.0}, "utilization_percent": 90}
+  ]
+}
+```
+
+Filtered response (CUDA_VISIBLE_DEVICES="0,2"):
+```json
+{
+  "gpu_count": 2,
+  "gpus": [
+    {"gpu_id": 0, "name": "NVIDIA RTX 3080", "memory": {"usage_percent": 25.0}, "utilization_percent": 30},
+    {"gpu_id": 2, "name": "NVIDIA RTX 3080", "memory": {"usage_percent": 10.0}, "utilization_percent": 15}
+  ]
+}
+```
+
+**Configuration endpoint with filtering active:**
+```json
+{
+  "server": {"host": "0.0.0.0", "port": 8000},
+  "gpu_filtering": {
+    "cuda_visible_devices": "0,2",
+    "visible_gpu_ids": [0, 2],
+    "filtering_active": true,
+    "total_system_gpus": 4,
+    "visible_gpu_count": 2
+  }
+}
+```
+
 ### Available Environment Variables:
 
 #### Server Configuration
@@ -321,6 +413,9 @@ The server can be configured using environment variables. The server automatical
 - `REDOC_URL` - ReDoc path (default: "/redoc")
 - `ENABLE_CORS` - Enable CORS (default: true)
 - `API_PREFIX` - API prefix (default: "")
+
+#### GPU Filtering Configuration
+- `CUDA_VISIBLE_DEVICES` - Comma or space-separated list of GPU indices to make visible (default: not set, shows all GPUs)
 
 #### Monitoring Configuration
 - `REFRESH_INTERVAL` - GPU data cache interval in seconds (default: 1.0)
@@ -498,6 +593,54 @@ checkHealth();
    - Check if the server is running
    - Verify the correct host and port
    - Check firewall settings
+
+### GPU Filtering Issues
+
+5. **GPUs not being filtered as expected**
+   - Check the CUDA_VISIBLE_DEVICES environment variable: `echo $CUDA_VISIBLE_DEVICES`
+   - Verify the server logs for filtering configuration at startup
+   - Check the `/config` endpoint to see current filtering settings
+   - Ensure GPU indices in CUDA_VISIBLE_DEVICES exist on your system
+
+6. **Invalid GPU indices warnings**
+   - Check server logs for warnings like "GPU X in CUDA_VISIBLE_DEVICES not found on system"
+   - Run `nvidia-smi` to see available GPU indices (0, 1, 2, etc.)
+   - Update CUDA_VISIBLE_DEVICES to use only valid GPU indices
+
+7. **Server shows all GPUs despite CUDA_VISIBLE_DEVICES being set**
+   - Verify the environment variable is set in the same shell/process as the server
+   - Check for parsing errors in server logs
+   - Ensure CUDA_VISIBLE_DEVICES format is correct (comma or space-separated numbers)
+   - Try setting LOG_LEVEL=debug for more detailed filtering logs
+
+8. **Empty GPU list when CUDA_VISIBLE_DEVICES is set**
+   - Check if CUDA_VISIBLE_DEVICES is set to an empty string: `CUDA_VISIBLE_DEVICES=""`
+   - Verify all GPU indices in CUDA_VISIBLE_DEVICES are valid
+   - Check server logs for parsing errors or warnings
+
+9. **Inconsistent GPU counts across endpoints**
+   - All endpoints should return the same filtered GPU count
+   - Check the `/config` endpoint to verify filtering is active
+   - Restart the server if filtering configuration has changed
+
+**Debugging GPU Filtering:**
+
+Enable debug logging to see detailed filtering information:
+```bash
+export LOG_LEVEL=debug
+export CUDA_VISIBLE_DEVICES="0,2"
+python -m gpu_worker_pool.gpu_server
+```
+
+Check filtering configuration via API:
+```bash
+curl http://localhost:8000/config | jq '.gpu_filtering'
+```
+
+Verify current environment variable:
+```bash
+echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+```
 
 ## License
 
